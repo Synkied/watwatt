@@ -64,7 +64,7 @@ const BasicChart = ({
       };
 
       if (Object.keys(datasets).includes(region)) {
-        datasets[region].data.push(record?.fields?.consommation);
+        datasets[region]?.data.push(record?.fields?.consommation);
       } else {
         datasets[region] = dataset;
       }
