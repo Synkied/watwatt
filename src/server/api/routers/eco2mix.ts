@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 
-export const eco2mixSchema = z.object({
-  nhits: z.number().optional(),
+export const eCO2MixSchema = z.object({
+  nhits: z.number(),
   parameters: z.object({
     dataset: z.string().optional(),
     rows: z.number().optional(),
@@ -68,22 +68,42 @@ export const eco2mixSchema = z.object({
     .optional(),
 });
 
+export type eCO2Mix = z.infer<typeof eCO2MixSchema>;
+
 export const eco2MixRouter = createTRPCRouter({
   getForDateTime: publicProcedure
     .input(z.object({ date: z.string(), fromHour: z.string() }))
     .query(async ({ input }) => {
-      const url = `https://odre.opendatasoft.com/api/records/1.0/search/?dataset=eco2mix-regional-tr&q=&rows=20&sort=date_heure&facet=libelle_region&facet=nature&facet=date_heure&refine.date=${input.date}&refine.heure=${input.fromHour}&timezone=Europe%2FParis`;
+      const url = `https://odre.opendatasoft.com/api/records/1.0/search/?dataset=eco2mix-regional-tr&q=&rows=100&sort=date_heure&facet=libelle_region&facet=nature&facet=date_heure&refine.date=${input.date}&refine.heure=${input.fromHour}&timezone=Europe%2FParis`;
       const response = await fetch(url);
-      const parsedData = eco2mixSchema.parse(await response.json());
+      const parsedData = eCO2MixSchema.parse(await response.json());
       return parsedData;
     }),
 
   getForDate: publicProcedure
     .input(z.object({ date: z.string() }))
     .query(async ({ input }) => {
-      const url = `https://odre.opendatasoft.com/api/records/1.0/search/?dataset=eco2mix-regional-tr&q=&rows=20&sort=heure&facet=libelle_region&facet=nature&facet=date_heure&refine.date=${input.date}&timezone=Europe%2FParis`;
+      const rows = 100;
+      let start = 0;
+      let url = `https://odre.opendatasoft.com/api/records/1.0/search/?dataset=eco2mix-regional-tr&q=&rows=${rows.toString()}&start=${start.toString()}&sort=heure&facet=libelle_region&facet=nature&facet=date_heure&refine.date=${
+        input.date
+      }&timezone=Europe%2FParis`;
       const response = await fetch(url);
-      const parsedData = eco2mixSchema.parse(await response.json());
-      return parsedData;
+      const data = eCO2MixSchema.parse(await response.json());
+      let toRetrieve = data.nhits;
+
+      while (toRetrieve > 0) {
+        start += 100;
+        url = `https://odre.opendatasoft.com/api/records/1.0/search/?dataset=eco2mix-regional-tr&q=&rows=${rows.toString()}&start=${start.toString()}&sort=heure&facet=libelle_region&facet=nature&facet=date_heure&refine.date=${
+          input.date
+        }&timezone=Europe%2FParis`;
+        const response = await fetch(url);
+        const parsedData = eCO2MixSchema.parse(await response.json());
+
+        data.records.push(...parsedData.records);
+
+        toRetrieve -= 100;
+      }
+      return data;
     }),
 });

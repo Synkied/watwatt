@@ -1,29 +1,26 @@
 import { type NextPage } from "next";
-import { signIn, signOut, useSession } from "next-auth/react";
 import Head from "next/head";
 import styles from "./index.module.css";
 
+import Chart from "../components/BasicChart";
 import { api } from "../utils/api";
 
 const Home: NextPage = () => {
   const now = new Date().getTime();
-  const nowMinus30Min = new Date(now - 60 * 60 * 1000);
-  const date = nowMinus30Min.toISOString().split("T")[0];
+  const nowMinus = new Date(now - 5 * 60 * 1000);
+  const date = nowMinus.toISOString().split("T")[0];
   const closestQuarter = (
-    (Math.round(nowMinus30Min.getMinutes() / 15) * 15) %
+    (Math.round(nowMinus.getMinutes() / 15) * 15) %
     60
   ).toString();
-  const fromHour = `${nowMinus30Min.getHours()}:${closestQuarter.padStart(
-    2,
-    "0"
-  )}`;
+  const fromHour = `${nowMinus.getHours()}:${closestQuarter.padStart(2, "0")}`;
 
-  const eco2mixNow = api.eco2mix.getForDateTime.useQuery({
+  const eCO2mixNow = api.eco2mix.getForDateTime.useQuery({
     date: date as string,
     fromHour: fromHour,
   });
 
-  const eco2mixToday = api.eco2mix.getForDate.useQuery({
+  const eCO2MixToday = api.eco2mix.getForDate.useQuery({
     date: date as string,
   });
 
@@ -39,19 +36,7 @@ const Home: NextPage = () => {
           <h1 className={styles.title}>WatWatt</h1>
           <div className={styles.cardRow}></div>
           <div className={styles.showcaseContainer}>
-            <div className={styles.showcaseText}>
-              <span>{eco2mixToday.data?.parameters?.refine?.date}</span>
-              <span>{eco2mixToday.data?.parameters?.refine?.heure}</span>
-              {eco2mixToday.data?.records.map((record) => (
-                <div key={record.recordid}>
-                  <p>recordid {record.recordid}</p>
-                  <p>date {record.fields.date_heure}</p>
-                  <p>bioenergies {record.fields.bioenergies}</p>
-                  <p>eolien {record.fields.eolien}</p>
-                </div>
-              ))}
-            </div>
-            <AuthShowcase />
+            <Chart eCO2MixToday={eCO2MixToday?.data} />
           </div>
         </div>
       </main>
@@ -60,27 +45,3 @@ const Home: NextPage = () => {
 };
 
 export default Home;
-
-const AuthShowcase: React.FC = () => {
-  const { data: sessionData } = useSession();
-
-  const { data: secretMessage } = api.example.getSecretMessage.useQuery(
-    undefined, // no input
-    { enabled: sessionData?.user !== undefined }
-  );
-
-  return (
-    <div className={styles.authContainer}>
-      <p className={styles.showcaseText}>
-        {sessionData && <span>Logged in as {sessionData.user?.name}</span>}
-        {secretMessage && <span> - {secretMessage}</span>}
-      </p>
-      <button
-        className={styles.loginButton}
-        onClick={sessionData ? () => void signOut() : () => void signIn()}
-      >
-        {sessionData ? "Sign out" : "Sign in"}
-      </button>
-    </div>
-  );
-};
