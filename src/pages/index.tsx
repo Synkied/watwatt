@@ -9,16 +9,6 @@ const Home: NextPage = () => {
   const now = new Date().getTime();
   const nowMinus = new Date(now - 5 * 60 * 1000);
   const date = nowMinus.toISOString().split("T")[0];
-  const closestQuarter = (
-    (Math.round(nowMinus.getMinutes() / 15) * 15) %
-    60
-  ).toString();
-  const fromHour = `${nowMinus.getHours()}:${closestQuarter.padStart(2, "0")}`;
-
-  const eCO2mixNow = api.eco2mix.getForDateTime.useQuery({
-    date: date as string,
-    fromHour: fromHour,
-  });
 
   const eCO2MixToday = api.eco2mix.getForDate.useQuery({
     date: date as string,
